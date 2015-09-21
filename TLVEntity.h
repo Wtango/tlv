@@ -2,6 +2,7 @@
 #define __TLVENTITY_H__
 
 #include <stdint.h>
+#include <stdlib.h>
 
 /*
  *Reference
@@ -17,7 +18,9 @@ struct TLVEntity {
 	uint16_t tag;			//Tag
 	uint32_t length;		//Data Length
 	uint8_t *value;			//Data
-	uint32_t buff_len;		// incase data buffer is larger than the TLV value
+
+	TLVEntity(){tag = 0;length = 0;value = NULL;}
+	virtual ~TLVEntity() {if(this->value != NULL)free(this->value);}
 };
 
 typedef struct TLVEntity Tlv_t;

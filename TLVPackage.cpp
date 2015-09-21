@@ -1,4 +1,6 @@
-#include <cstdio>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "TLVPackage.h"
 
 
@@ -52,7 +54,7 @@ uint8_t* TLVPackage::SetLength(uint32_t len, uint8_t *buffer)
 }
 
 /* only parse the first tlvobj in buffer */
-const uint8_t* TLVPackage::ParseTlvHeader(const uint8_t* buffer, uint32_t length, Tlv_t *tlv)
+const uint8_t* TLVPackage::GetTlvHeader(const uint8_t* buffer, uint32_t length, Tlv_t *tlv)
 {
 	uint32_t i, j;
 	uint8_t b;
@@ -113,8 +115,132 @@ const uint8_t* TLVPackage::ParseTlvHeader(const uint8_t* buffer, uint32_t length
 	return NULL;
 }
 
-int TLVPackage::Construct(const uint8_t *buffer, uint32_t bufferLength,
-		TLVEntity *tlvEntity,uint32_t &entityLength)
+// allocate and copy value data from a buffer into a TLV
+// the allocated memory will free when TLV destruct
+int TLVPackage::CopyBuff2TlvValue(const uint8_t *buffer,Tlv_t *tlv)
 {
+	if(tlv->length != 0)
+		tlv->value = (uint8_t*)malloc(sizeof(uint8_t) * tlv->length);
+	if(tlv->value == NULL) return -1;
+	memcpy(tlv->value, buffer, tlv->length);
+	return 0;
+}
 
+
+int TLVPackage::Construct(const uint8_t *buffer, uint32_t bufferLength,
+		TLVEntity *tlvs,uint32_t &entitySize)
+{
+	const uint8_t *p;
+	if((p = GetTlvHeader(buffer, bufferLength, tlvs)) == NULL) {
+		//paese head error
+		return -1;
+	}
+	if(CopyBuff2TlvValue(p, tlvs)) {
+		// Coyp data error
+		return -1;
+	}
+	entitySize++;
+
+	// there are remain buffer data,i assume it as another tlv
+	if(buffer + bufferLength > p + tlvs->length) {
+		if(entitySize >= MAX_TLVOBJ_ARR) {
+			//too many tlvobj in this buffer
+			return -1;
+		}
+		if(Construct(p + tlvs->length, (buffer + bufferLength) - (p + tlvs->length), tlvs++, entitySize))
+			return -1;
+	}
+	return 0;
+}
+
+uint8_t* TLVPackage::CopyTlvValue2Buff(const TLVEntity *tlv,uint8_t *buffer)
+{
+	memcpy(buffer, tlv->value, tlv->length);
+	// reutrn the next byte in buffer
+	return buffer + tlv->length;
+}
+
+int TLVPackage::Parse(const TLVEntity *tlvs, uint32_t entitySize,
+		uint8_t *buffer, uint32_t &bufferLength)
+{
+	if(entitySize > 0) {
+		if(tlvs->tag <= 0xff) {
+			// one byte tag
+			buffer[bufferLength++] = (tlvs->tag & 0xff);
+		}
+		else {
+			// two bytes tag
+			buffer[bufferLength++] = ((tlvs->tag >> 8) & 0xff);
+			buffer[bufferLength++] = (tlvs->tag & 0xff);
+		}
+
+		uint8_t *ptr;
+		ptr = SetLength(tlvs->length, buffer + bufferLength);
+		ptr = CopyTlvValue2Buff(tlvs, ptr);
+		bufferLength = ptr - buffer;
+		return Parse(++tlvs, --entitySize, buffer, bufferLength);
+	}
+	return 0;
+}
+
+static void PrintBufferHex(const uint8_t* buff, size_t len)
+{
+	size_t i, j;
+
+	for (i=0, j=0; i<len; i++) {
+		printf("%02x ", buff[i]);
+		if (++j%8 == 0) printf("\n");
+	}
+	if (j%8 != 0) printf("\n");
+	printf("\n");
+}
+
+void Tlv_Debug(Tlv_t* tlv)
+{
+	int i, j, k;
+	char ascii_buf[8+1];
+
+	printf("> tlv tag: %x\n", tlv->tag);
+	printf("> tlv len: %d\n", tlv->length);
+	printf("> tlv data:\n");
+	for (i=0, j=0, k=0; i<tlv->length; i++) {
+		printf("%02x ", (uint8_t)tlv->value[i]);
+		ascii_buf[k++] = ((tlv->value[i] >= 0x20) && (tlv->value[i] < 0x7f)) ? tlv->value[i] : '.';
+		if (++j%8 == 0) {
+			ascii_buf[k] = '\0';
+			printf("\t%s\n", ascii_buf);
+			k = 0;
+		}
+	}
+	if (j%8 != 0) {
+		ascii_buf[k] = '\0';
+		for (i=k; i<8; i++) printf("   ");
+		printf("\t%s\n", ascii_buf);
+		k = 0;
+	}
+	printf("\n");
+}
+
+int main()
+{
+	uint8_t test[] = {'2','2','2'};
+	TLVEntity tlv;
+	tlv.tag = 0xffff;
+	tlv.length = 3;
+	TLVPackage::CopyBuff2TlvValue(test,&tlv);
+
+	uint8_t data[10] = {0};
+	uint32_t len = 0;
+	TLVPackage::Parse(&tlv, 1, data, len);
+
+	PrintBufferHex(data,len);
+
+	tlv.tag = 0;
+	tlv.length = 0;
+	free(tlv.value);
+	tlv.value = NULL;
+
+	uint32_t tlv_size = 0;
+	TLVPackage::Construct(data, len, &tlv, tlv_size);
+	Tlv_Debug(&tlv);
 }
