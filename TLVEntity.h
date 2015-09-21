@@ -9,24 +9,17 @@
  *http://my.oschina.net/maxid/blog/206546
  */
 
+#define CONSTRUCT_ENCODED_MASK 0x20
+#define SINGLE_TAG_BYTE_MASK 0x1F
+#define FOLLOWS_LEN_BYTE_MASK 0x80
+
 struct TLVEntity {
-	uint8_t *Tag;			//Tag
-	uint8_t *Length;		//Data Length
-	uint8_t *Value;			//Data
-	uint32_t TagSize;
-	uint32_t LengthSize;
-	TLVEntity *Sub_TLVEntity;
+	uint16_t tag;			//Tag
+	uint32_t length;		//Data Length
+	uint8_t *value;			//Data
+	uint32_t buff_len;		// incase data buffer is larger than the TLV value
 };
 
-class TLVPackage
-{
-public:
-	TLVPackage();
-	virtual ~TLVPackage();
-
-	static void Construct(uint8_t *data, uint32_t dataSize, TLVEntity *tlvEntity, uint32_t &entityLength);
-
-	static void Parse();
-};
+typedef struct TLVEntity Tlv_t;
 
 #endif //__TLVENTITY_H__
