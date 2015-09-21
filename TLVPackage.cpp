@@ -195,31 +195,48 @@ static void PrintBufferHex(const uint8_t* buff, size_t len)
 	printf("\n");
 }
 
-void Tlv_Debug(Tlv_t* tlv)
+void Tlv_Debug(Tlv_t* tlv, int tlv_size)
 {
-	int i, j, k;
-	char ascii_buf[8+1];
+	while(tlv_size--) {
+		int i, j, k;
+		char ascii_buf[8+1];
 
-	printf("> tlv tag: %x\n", tlv->tag);
-	printf("> tlv len: %d\n", tlv->length);
-	printf("> tlv data:\n");
-	for (i=0, j=0, k=0; i<tlv->length; i++) {
-		printf("%02x ", (uint8_t)tlv->value[i]);
-		ascii_buf[k++] = ((tlv->value[i] >= 0x20) && (tlv->value[i] < 0x7f)) ? tlv->value[i] : '.';
-		if (++j%8 == 0) {
+		printf("> tlv tag: %x\n", tlv->tag);
+		printf("> tlv len: %d\n", tlv->length);
+		printf("> tlv data:\n");
+		for (i=0, j=0, k=0; i<tlv->length; i++) {
+			printf("%02x ", (uint8_t)tlv->value[i]);
+			ascii_buf[k++] = ((tlv->value[i] >= 0x20) && (tlv->value[i] < 0x7f)) ? tlv->value[i] : '.';
+			if (++j%8 == 0) {
+				ascii_buf[k] = '\0';
+				printf("\t%s\n", ascii_buf);
+				k = 0;
+			}
+		}
+		if (j%8 != 0) {
 			ascii_buf[k] = '\0';
+			for (i=k; i<8; i++) printf("   ");
 			printf("\t%s\n", ascii_buf);
 			k = 0;
 		}
+		printf("\n");
+		tlv++;
 	}
-	if (j%8 != 0) {
-		ascii_buf[k] = '\0';
-		for (i=k; i<8; i++) printf("   ");
-		printf("\t%s\n", ascii_buf);
-		k = 0;
-	}
-	printf("\n");
 }
+
+uint8_t tlv1Data[] =
+{
+	0x70,0x43,0x5F,0x20,0x1A,0x56,0x49,0x53,
+	0x41,0x20,0x41,0x43,0x51,0x55,0x49,0x52,
+	0x45,0x52,0x20,0x54,0x45,0x53,0x54,0x20,
+	0x43,0x41,0x52,0x44,0x20,0x32,0x39,0x57,
+	0x11,0x47,0x61,0x73,0x90,0x01,0x01,0x00,
+	0x10,0xD1,0x01,0x22,0x01,0x11,0x43,0x87,
+	0x80,0x89,0x9F,0x1F,0x10,0x31,0x31,0x34,
+	0x33,0x38,0x30,0x30,0x37,0x38,0x30,0x30,
+	0x30,0x30,0x30,0x30,0x30,
+	0xff,0x11,0x81,0x03,'p','e','r'
+};
 
 int main()
 {
@@ -242,5 +259,21 @@ int main()
 
 	uint32_t tlv_size = 0;
 	TLVPackage::Construct(data, len, &tlv, tlv_size);
-	Tlv_Debug(&tlv);
+	Tlv_Debug(&tlv,tlv_size);
+
+	Tlv_t tlvs[MAX_TLVOBJ_ARR];
+	tlv_size = 0;
+	TLVPackage::Construct(tlv1Data, sizeof(tlv1Data), tlvs, tlv_size);
+	printf("tlv_size:%u\n",tlv_size);
+	Tlv_Debug(tlvs,tlv_size);
+
+	uint8_t tmp[100];
+	uint32_t tmp_size = 0;
+	TLVPackage::Parse(tlvs, tlv_size, tmp, tmp_size);
+	printf("tmp_size:%d\n",tmp_size);
+	PrintBufferHex(tmp,tmp_size);
+
+	if(!memcmp(tlv1Data,tmp,sizeof(tlv1Data))) {
+		printf("the data is same..\n");
+	}
 }
