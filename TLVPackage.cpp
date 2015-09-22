@@ -147,7 +147,10 @@ int TLVPackage::Construct(const uint8_t *buffer, uint32_t bufferLength,
 			//too many tlvobj in this buffer
 			return -1;
 		}
-		if(Construct(p + tlvs->length, (buffer + bufferLength) - (p + tlvs->length), tlvs++, entitySize))
+		// it's strange that i pass 'p + tlvs->length' to this func,it will be get a wrong position,
+		// it just point to the next two bytes enven if 'p + tlvs->length' point to right position.
+		const uint8_t *newbuff = p + tlvs->length;
+		if(Construct(newbuff, (buffer + bufferLength) - newbuff, ++tlvs, entitySize))
 			return -1;
 	}
 	return 0;
@@ -235,7 +238,7 @@ uint8_t tlv1Data[] =
 	0x80,0x89,0x9F,0x1F,0x10,0x31,0x31,0x34,
 	0x33,0x38,0x30,0x30,0x37,0x38,0x30,0x30,
 	0x30,0x30,0x30,0x30,0x30,
-	0xff,0x11,0x81,0x03,'p','e','r'
+	0xff,0x11,0x03,'p','e','r'
 };
 
 int main()
@@ -248,7 +251,10 @@ int main()
 
 	uint8_t data[10] = {0};
 	uint32_t len = 0;
-	TLVPackage::Parse(&tlv, 1, data, len);
+
+	if(TLVPackage::Parse(&tlv, 1, data, len)) {
+		fprintf(stderr,"Parse error\n");
+	}
 
 	PrintBufferHex(data,len);
 
@@ -258,12 +264,16 @@ int main()
 	tlv.value = NULL;
 
 	uint32_t tlv_size = 0;
-	TLVPackage::Construct(data, len, &tlv, tlv_size);
+	if(TLVPackage::Construct(data, len, &tlv, tlv_size)) {
+		fprintf(stderr,"Construct error\n");
+	}
 	Tlv_Debug(&tlv,tlv_size);
 
 	Tlv_t tlvs[MAX_TLVOBJ_ARR];
 	tlv_size = 0;
-	TLVPackage::Construct(tlv1Data, sizeof(tlv1Data), tlvs, tlv_size);
+	if(TLVPackage::Construct(tlv1Data, sizeof(tlv1Data), tlvs, tlv_size)) {
+		fprintf(stderr,"Construct error\n");
+	}
 	printf("tlv_size:%u\n",tlv_size);
 	Tlv_Debug(tlvs,tlv_size);
 
