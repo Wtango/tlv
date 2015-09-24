@@ -21,6 +21,8 @@ public:
 
 	static uint8_t* CopyTlvValue2Buff(const Tlv_t *tlv,uint8_t *buffer);
 
+	static void Tlv_Debug(Tlv_t *tlvs,int tlv_size);
+
 private:
 	// helper function to scan the tag ID + length field and then
 	// return a pointer to the beginning of value data
