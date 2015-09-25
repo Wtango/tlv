@@ -30,6 +30,7 @@ uint8_t tlv1Data[] =
 
 int main()
 {
+#if 0
 	uint8_t test[] = {'2','2','2'};
 	TLVEntity tlv;
 	tlv.tag = 0xffff;
@@ -50,13 +51,15 @@ int main()
 	free(tlv.value);
 	tlv.value = NULL;
 
+	Tlv_t child_tlv;
+
 	uint32_t tlv_size = 0;
 	if(TLVPackage::Construct(data, len, &tlv, tlv_size)) {
 		fprintf(stderr,"Construct error\n");
 	}
 	TLVPackage::Tlv_Debug(&tlv,tlv_size);
 
-	Tlv_t tlvs[MAX_TLVOBJ_ARR];
+	Tlv_t tlvs[MAX_TLVOBJ_SIZE];
 	tlv_size = 0;
 	if(TLVPackage::Construct(tlv1Data, sizeof(tlv1Data), tlvs, tlv_size)) {
 		fprintf(stderr,"Construct error\n");
@@ -73,4 +76,36 @@ int main()
 	if(!memcmp(tlv1Data,tmp,sizeof(tlv1Data))) {
 		printf("the data is same..\n");
 	}
+#else
+
+	Tlv_t tlv;
+	tlv.tag = 0xa1;
+
+	Tlv_t child1;
+	child1.tag = 0x01;
+	uint8_t child1_msg[] = {'c','h','i','l','d','1'};
+	child1.length = sizeof(child1_msg);
+	TLVPackage::CopyBuff2TlvValue(child1_msg, &child1);
+
+	Tlv_t child2;
+	child2.tag = 0x02;
+	uint8_t child2_msg[] = {'c','h','i','l','d','2'};
+	child2.length = sizeof(child2_msg);
+	TLVPackage::CopyBuff2TlvValue(child2_msg, &child2);
+
+	if(TLVPackage::AddTlv(&tlv,&child1))
+		fprintf(stderr,"Add child1 error\n");
+	if(TLVPackage::AddTlv(&tlv,&child2))
+		fprintf(stderr,"Add child2 error\n");
+
+	TLVPackage::Tlv_Debug(&tlv, 1);
+
+	Tlv_t tlvs[MAX_TLVOBJ_SIZE];
+	uint32_t tlvs_size = 0;
+	TLVPackage::Construct(tlv.value, tlv.length, tlvs, tlvs_size);
+
+	TLVPackage::Tlv_Debug(tlvs, tlvs_size);
+#endif
+
+
 }

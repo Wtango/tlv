@@ -3,7 +3,7 @@
 
 #include "TLVEntity.h"
 
-#define MAX_TLVOBJ_ARR 100
+#define MAX_TLVOBJ_SIZE 100
 
 class TLVPackage
 {
@@ -20,6 +20,10 @@ public:
 	static int CopyBuff2TlvValue(const uint8_t *buffer,Tlv_t *tlv);
 
 	static uint8_t* CopyTlvValue2Buff(const Tlv_t *tlv,uint8_t *buffer);
+
+	static int AddTlv(Tlv_t *tlv,Tlv_t *child_tlv);
+
+	static uint8_t GetHeaderSize(Tlv_t *tlv);
 
 	static void Tlv_Debug(Tlv_t *tlvs,int tlv_size);
 

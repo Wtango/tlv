@@ -143,7 +143,7 @@ int TLVPackage::Construct(const uint8_t *buffer, uint32_t bufferLength,
 
 	// there are remain buffer data,i assume it as another tlv
 	if(buffer + bufferLength > p + tlvs->length) {
-		if(entitySize >= MAX_TLVOBJ_ARR) {
+		if(entitySize >= MAX_TLVOBJ_SIZE) {
 			//too many tlvobj in this buffer
 			return -1;
 		}
@@ -184,6 +184,41 @@ int TLVPackage::Parse(const TLVEntity *tlvs, uint32_t entitySize,
 		return Parse(++tlvs, --entitySize, buffer, bufferLength);
 	}
 	return 0;
+}
+
+uint8_t TLVPackage::GetTlvHeaderSize(const Tlv_t *tlv)
+{
+	uint8_t tag_len = tlv->tag <= 0xff ? 1 : 2;
+
+	uint8_t val_len_len = 1;
+	if(tlv->length > 0x7f) {
+		uint8_t c = 0;
+		uint32_t v = tlv->length;
+		while(v != 0) {
+			v >>= 8;
+			c++;
+		}
+		val_len_len += c;
+	}
+	return tag_len + val_len_len;
+}
+
+// add a child TLV object into a TLV container
+// I assume this means to copy a TLV object within the data field
+int TLVPackage::AddTlv(Tlv_t *tlv,Tlv_t *child_tlv)
+{
+	uint8_t child_head_size = GetTlvHeaderSize(child_tlv);
+	uint32_t child_total_size = child_head_size + child_tlv->length;
+	uint8_t *p = (uint8_t*)realloc(tlv->value, tlv->length + child_total_size);
+	if(p == NULL)
+		return -1;
+	tlv->value = p;
+	uint32_t buflen = 0;
+	if(Parse(child_tlv, 1, tlv->value + tlv->length, buflen))
+		return -1;
+	tlv->length += child_total_size;
+	return 0;
+	
 }
 
 void TLVPackage::Tlv_Debug(Tlv_t* tlv, int tlv_size)
