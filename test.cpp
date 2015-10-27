@@ -30,7 +30,7 @@ uint8_t tlv1Data[] =
 
 int main()
 {
-#if 0
+#if 1
 	uint8_t test[] = {'2','2','2'};
 	TLVEntity tlv;
 	tlv.tag = 0xffff;
@@ -48,10 +48,6 @@ int main()
 
 	tlv.tag = 0;
 	tlv.length = 0;
-	free(tlv.value);
-	tlv.value = NULL;
-
-	Tlv_t child_tlv;
 
 	uint32_t tlv_size = 0;
 	if(TLVPackage::Construct(data, len, &tlv, tlv_size)) {

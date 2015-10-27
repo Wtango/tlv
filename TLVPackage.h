@@ -27,6 +27,8 @@ public:
 
 	static void Tlv_Debug(Tlv_t *tlvs,int tlv_size);
 
+	template<class T> static void BasicValSet(Tlv_t *tlv,T par);
+
 private:
 	// helper function to scan the tag ID + length field and then
 	// return a pointer to the beginning of value data

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <typeinfo>
 #include "TLVPackage.h"
 
 
@@ -119,9 +120,17 @@ const uint8_t* TLVPackage::GetTlvHeader(const uint8_t* buffer, uint32_t length, 
 // the allocated memory will free when TLV destruct
 int TLVPackage::CopyBuff2TlvValue(const uint8_t *buffer,Tlv_t *tlv)
 {
-	if(tlv->length != 0)
-		tlv->value = (uint8_t*)malloc(sizeof(uint8_t) * tlv->length);
-	if(tlv->value == NULL) return -1;
+	if(tlv->length + 3 > tlv->buff_length) {
+		int i = 2;
+		while(i * BUFF_INCREMENT_SIZE < tlv->length + 3)i++;
+		uint8_t *ptr;
+		ptr = (uint8_t*)realloc(tlv->value, i * BUFF_INCREMENT_SIZE);
+		//allocte memory fail
+		if(ptr == NULL)
+			return -1;
+		tlv->value = ptr;
+		tlv->buff_length = i * BUFF_INCREMENT_SIZE;
+	}
 	memcpy(tlv->value, buffer, tlv->length);
 	return 0;
 }
@@ -207,46 +216,83 @@ uint8_t TLVPackage::GetTlvHeaderSize(const Tlv_t *tlv)
 // I assume this means to copy a TLV object within the data field
 int TLVPackage::AddTlv(Tlv_t *tlv,Tlv_t *child_tlv)
 {
-	uint8_t child_head_size = GetTlvHeaderSize(child_tlv);
-	uint32_t child_total_size = child_head_size + child_tlv->length;
-	uint8_t *p = (uint8_t*)realloc(tlv->value, tlv->length + child_total_size);
-	if(p == NULL)
-		return -1;
-	tlv->value = p;
+	if(tlv->length + child_tlv->length + 6 > tlv->buff_length) {
+		int i = 2;
+		while(i * BUFF_INCREMENT_SIZE < tlv->length + child_tlv->length + 6)i++;
+		uint8_t *ptr;
+		ptr = (uint8_t*)realloc(tlv->value, i * BUFF_INCREMENT_SIZE);
+		//allocate memory failed
+		if(ptr == NULL)
+			return -1;
+		tlv->value = ptr;
+		tlv->buff_length = i * BUFF_INCREMENT_SIZE;
+	}
 	uint32_t buflen = 0;
 	if(Parse(child_tlv, 1, tlv->value + tlv->length, buflen))
 		return -1;
-	tlv->length += child_total_size;
+	tlv->length += buflen;
 	return 0;
-	
+}
+
+template<class T> void TLVPackage::BasicValSet(Tlv_t *tlv, T par)
+{
+	tlv->length = sizeof(T);
+	memcpy(tlv->value, &par, sizeof(T));
+	if(typeid(T) == typeid(bool))
+		tlv->tag = 1;
+	if(typeid(T) == typeid(int8_t))
+		tlv->tag = 2;
+	if(typeid(T) ==  typeid(uint8_t))
+		tlv->tag = 3;
+	if(typeid(T) == typeid(int16_t))
+		tlv->tag = 4;
+	if(typeid(T) == typeid(uint16_t))
+		tlv->tag = 5;
+	if(typeid(T) ==  typeid(int32_t))
+		tlv->tag = 6;
+	if(typeid(T) == typeid(uint32_t))
+		tlv->tag = 7;
+	if(typeid(T) == typeid(int64_t))
+		tlv->tag = 8;
+	if(typeid(T) == typeid(uint64_t))
+		tlv->tag = 9;
+	if(typeid(T) == typeid(float))
+		tlv->tag = 10;
+	if(typeid(T) == typeid(double))
+		tlv->tag = 11;
+	if(typeid(T) == typeid(char))
+		tlv->tag = 12;
+	if(typeid(T) == typeid(NULL))
+		tlv->tag = 15;
+
 }
 
 void TLVPackage::Tlv_Debug(Tlv_t* tlv, int tlv_size)
 {
-        while(tlv_size--) {
-                int i, j, k;
-                char ascii_buf[8+1];
+	while(tlv_size--) {
+		int i, j, k;
+		char ascii_buf[8+1];
 
-                printf("> tlv tag: %x\n", tlv->tag);
-                printf("> tlv len: %d\n", tlv->length);
-                printf("> tlv data:\n");
-                for (i=0, j=0, k=0; i<tlv->length; i++) {
-                        printf("%02x ", (uint8_t)tlv->value[i]);
-                        ascii_buf[k++] = ((tlv->value[i] >= 0x20) && (tlv->value[i] < 0x7f)) ? tlv->value[i] : '.';
-                        if (++j%8 == 0) {
-                                ascii_buf[k] = '\0';
-                                printf("\t%s\n", ascii_buf);
-                                k = 0;
-                        }
-                }
-                if (j%8 != 0) {
-                        ascii_buf[k] = '\0';
-                        for (i=k; i<8; i++) printf("   ");
-                        printf("\t%s\n", ascii_buf);
-                        k = 0;
-                }
-                printf("\n");
-                tlv++;
-        }
+		printf("> tlv tag: %x\n", tlv->tag);
+		printf("> tlv len: %d\n", tlv->length);
+		printf("> tlv data:\n");
+		for (i=0, j=0, k=0; i<tlv->length; i++) {
+			printf("%02x ", (uint8_t)tlv->value[i]);
+			ascii_buf[k++] = ((tlv->value[i] >= 0x20) && (tlv->value[i] < 0x7f)) ? tlv->value[i] : '.';
+			if (++j%8 == 0) {
+				ascii_buf[k] = '\0';
+				printf("\t%s\n", ascii_buf);
+				k = 0;
+			}
+		}
+		if (j%8 != 0) {
+			ascii_buf[k] = '\0';
+			for (i=k; i<8; i++) printf("   ");
+			printf("\t%s\n", ascii_buf);
+			k = 0;
+		}
+		printf("\n");
+		tlv++;
+	}
 }
 
