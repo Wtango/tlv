@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "TLVPackage.h"
+#include "T"
 
 static void PrintBufferHex(const uint8_t* buff, size_t len)
 {
@@ -14,7 +15,7 @@ static void PrintBufferHex(const uint8_t* buff, size_t len)
 	printf("\n");
 }
 
-uint8_t tlv1Data[] =
+uint8_t data[] =
 {
 	0x70,0x43,0x5F,0x20,0x1A,0x56,0x49,0x53,
 	0x41,0x20,0x41,0x43,0x51,0x55,0x49,0x52,
@@ -28,40 +29,31 @@ uint8_t tlv1Data[] =
 	0xff,0x11,0x03,'p','e','r'
 };
 
+uint8_t tlv1Data[] = 
+{
+	0x22,0x19,0x21,0x6,0xf,0x4,0x4,0x0,0x0,
+	0x0,0x22,0x4,0xd,0x2,0x0,0x0,0x23,0x9,
+	0xd,0x7,0x53,0x75,0x63,0x63,0x65,0x73,0x73
+};
+
 int main()
 {
 #if 1
-	uint8_t test[] = {'2','2','2'};
-	TLVEntity tlv;
-	tlv.tag = 0xffff;
-	tlv.length = 3;
-	TLVPackage::CopyBuff2TlvValue(test,&tlv);
-
-	uint8_t data[10] = {0};
-	uint32_t len = 0;
-
-	if(TLVPackage::Parse(&tlv, 1, data, len)) {
-		fprintf(stderr,"Parse error\n");
-	}
-
-	PrintBufferHex(data,len);
-
-	tlv.tag = 0;
-	tlv.length = 0;
-
-	uint32_t tlv_size = 0;
-	if(TLVPackage::Construct(data, len, &tlv, tlv_size)) {
-		fprintf(stderr,"Construct error\n");
-	}
-	TLVPackage::Tlv_Debug(&tlv,tlv_size);
-
+	int tlv_size = 0;
 	Tlv_t tlvs[MAX_TLVOBJ_SIZE];
+	Tlv_t tlvs2[MAX_TLVOBJ_SIZE];
 	tlv_size = 0;
 	if(TLVPackage::Construct(tlv1Data, sizeof(tlv1Data), tlvs, tlv_size)) {
 		fprintf(stderr,"Construct error\n");
 	}
 	printf("tlv_size:%u\n",tlv_size);
 	TLVPackage::Tlv_Debug(tlvs,tlv_size);
+
+	tlv_size = 0;
+	if(TLVPackage::Construct(tlvs[0].value,tlvs[0].length ,tlvs2,tlv_size)) {
+		fprintf(stderr,"Construct error\n");
+	}
+	TLVPackage::Tlv_Debug(tlvs2, tlv_size);
 
 	uint8_t tmp[100];
 	uint32_t tmp_size = 0;

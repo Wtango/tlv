@@ -118,7 +118,7 @@ const uint8_t* TLVPackage::GetTlvHeader(const uint8_t* buffer, uint32_t length, 
 
 // allocate and copy value data from a buffer into a TLV
 // the allocated memory will free when TLV destruct
-int TLVPackage::CopyBuff2TlvValue(const uint8_t *buffer,Tlv_t *tlv)
+int TLVPackage::CopyBuff2TlvValue(const void *buffer,Tlv_t *tlv)
 {
 	if(tlv->length + 3 > tlv->buff_length) {
 		int i = 2;
@@ -165,6 +165,18 @@ int TLVPackage::Construct(const uint8_t *buffer, uint32_t bufferLength,
 	return 0;
 }
 
+int TLVPackage::Construct(const uint8_t *buffer,uint32_t buff_len,
+			TLVEntity *tlv)
+{
+	uint32_t tlv_size = 0;
+	if(Construct(buffer, buff_len, tlv, tlv_size))
+		return -1;
+	if(tlv_size != 1)
+		return -1;
+	return 0;
+}
+
+// just assume the buffer is large enough
 uint8_t* TLVPackage::CopyTlvValue2Buff(const TLVEntity *tlv,uint8_t *buffer)
 {
 	memcpy(buffer, tlv->value, tlv->length);
@@ -195,22 +207,12 @@ int TLVPackage::Parse(const TLVEntity *tlvs, uint32_t entitySize,
 	return 0;
 }
 
-uint8_t TLVPackage::GetTlvHeaderSize(const Tlv_t *tlv)
+int TLVPackage::Parse(const TLVEntity *tlvs, uint8_t *buffer, uint32_t &bufferLength)
 {
-	uint8_t tag_len = tlv->tag <= 0xff ? 1 : 2;
-
-	uint8_t val_len_len = 1;
-	if(tlv->length > 0x7f) {
-		uint8_t c = 0;
-		uint32_t v = tlv->length;
-		while(v != 0) {
-			v >>= 8;
-			c++;
-		}
-		val_len_len += c;
-	}
-	return tag_len + val_len_len;
+	bufferLength = 0;
+	return Parse(tlvs, 1, buffer, bufferLength);
 }
+
 
 // add a child TLV object into a TLV container
 // I assume this means to copy a TLV object within the data field
@@ -234,37 +236,20 @@ int TLVPackage::AddTlv(Tlv_t *tlv,Tlv_t *child_tlv)
 	return 0;
 }
 
-template<class T> void TLVPackage::BasicValSet(Tlv_t *tlv, T par)
+// add data into TLV container, as an embedded TLV data
+int TLVPackage::TlvAddData(Tlv_t *tlv, uint16_t tag, uint8_t *value, uint32_t value_len)
 {
-	tlv->length = sizeof(T);
-	memcpy(tlv->value, &par, sizeof(T));
-	if(typeid(T) == typeid(bool))
-		tlv->tag = 1;
-	if(typeid(T) == typeid(int8_t))
-		tlv->tag = 2;
-	if(typeid(T) ==  typeid(uint8_t))
-		tlv->tag = 3;
-	if(typeid(T) == typeid(int16_t))
-		tlv->tag = 4;
-	if(typeid(T) == typeid(uint16_t))
-		tlv->tag = 5;
-	if(typeid(T) ==  typeid(int32_t))
-		tlv->tag = 6;
-	if(typeid(T) == typeid(uint32_t))
-		tlv->tag = 7;
-	if(typeid(T) == typeid(int64_t))
-		tlv->tag = 8;
-	if(typeid(T) == typeid(uint64_t))
-		tlv->tag = 9;
-	if(typeid(T) == typeid(float))
-		tlv->tag = 10;
-	if(typeid(T) == typeid(double))
-		tlv->tag = 11;
-	if(typeid(T) == typeid(char))
-		tlv->tag = 12;
-	if(typeid(T) == typeid(NULL))
-		tlv->tag = 15;
+	Tlv_t child_tlv(tag,value,value_len);
+	return AddTlv(tlv, &child_tlv);
+}
 
+int TLVPackage::StringValSet(Tlv_t *tlv, void *buffer, uint32_t len)
+{
+	tlv->tag = TLV_STRING_TAG;
+	tlv->length = len;
+	if(CopyBuff2TlvValue(buffer, tlv))
+		return -1;
+	return 0;
 }
 
 void TLVPackage::Tlv_Debug(Tlv_t* tlv, int tlv_size)
