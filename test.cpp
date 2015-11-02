@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <string.h>
 #include "TLVPackage.h"
-#include "T"
 
 static void PrintBufferHex(const uint8_t* buff, size_t len)
 {
@@ -39,10 +38,9 @@ uint8_t tlv1Data[] =
 int main()
 {
 #if 1
-	int tlv_size = 0;
+	uint32_t tlv_size = 0;
 	Tlv_t tlvs[MAX_TLVOBJ_SIZE];
 	Tlv_t tlvs2[MAX_TLVOBJ_SIZE];
-	tlv_size = 0;
 	if(TLVPackage::Construct(tlv1Data, sizeof(tlv1Data), tlvs, tlv_size)) {
 		fprintf(stderr,"Construct error\n");
 	}
@@ -57,7 +55,7 @@ int main()
 
 	uint8_t tmp[100];
 	uint32_t tmp_size = 0;
-	TLVPackage::Parse(tlvs, tlv_size, tmp, tmp_size);
+	TLVPackage::Parse(tlvs2, tlv_size, tmp, tmp_size);
 	printf("tmp_size:%d\n",tmp_size);
 	PrintBufferHex(tmp,tmp_size);
 

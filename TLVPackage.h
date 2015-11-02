@@ -40,29 +40,29 @@ public:
 	        *(T*)tlv->value = par;
 	        if(typeid(T) == typeid(bool))
 	                tlv->tag = 1;
-	        if(typeid(T) == typeid(int8_t))
+	        else if(typeid(T) == typeid(int8_t))
 	                tlv->tag = 2;
-	        if(typeid(T) ==  typeid(uint8_t))
+	        else if(typeid(T) ==  typeid(uint8_t))
 	                tlv->tag = 3;
-	        if(typeid(T) == typeid(int16_t))
+	        else if(typeid(T) == typeid(int16_t))
 	                tlv->tag = 4;
-	        if(typeid(T) == typeid(uint16_t))
+	        else if(typeid(T) == typeid(uint16_t))
 	                tlv->tag = 5;
-	        if(typeid(T) ==  typeid(int32_t))
+	        else if(typeid(T) ==  typeid(int32_t))
 	                tlv->tag = 6;
-	        if(typeid(T) == typeid(uint32_t))
+	        else if(typeid(T) == typeid(uint32_t))
 	                tlv->tag = 7;
-	        if(typeid(T) == typeid(int64_t))
+	        else if(typeid(T) == typeid(int64_t))
 	                tlv->tag = 8;
-	        if(typeid(T) == typeid(uint64_t))
+	        else if(typeid(T) == typeid(uint64_t))
 	                tlv->tag = 9;
-	        if(typeid(T) == typeid(float))
+	        else if(typeid(T) == typeid(float))
 	                tlv->tag = 10;
-	        if(typeid(T) == typeid(double))
+	        else if(typeid(T) == typeid(double))
 	                tlv->tag = 11;
-	        if(typeid(T) == typeid(char))
+	        else if(typeid(T) == typeid(char))
 	                tlv->tag = 12;
-		if(typeid(T) == typeid(NULL))
+		else if(typeid(T) == typeid(NULL))
         	        tlv->tag = 15;
 	}
 
